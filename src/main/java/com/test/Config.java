@@ -14,10 +14,10 @@ import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder;
 public class Config {
 	
 	@Value("${cloud.aws.credentials.access-key}")
-	private String amazonAWSAccessKey = "AKIA4EV66LUDT74PTQPO";
+	private String amazonAWSAccessKey = "abc";
 	
 	@Value("${cloud.aws.credentials.secret-key}")
-	private String amazonAWSSecretKey = "F4mxQfzgFLTFvbCYOrljk8XRpFcl92zKytSh0j35";
+	private String amazonAWSSecretKey = "xyz";
 	
 	@Value("${aws_dynamodb_table}")
 	String tableName= "AssignDBTable";
