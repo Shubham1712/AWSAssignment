@@ -1,0 +1,101 @@
+AWSTemplateFormatVersion : "2010-09-09"
+Resources:
+
+# AWS Lambda execution policy. Allowing our function to manage the source queue and DynamoDB table.
+  AssignLambdaRole: 
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: AssignLambdaRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17' 
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+        - PolicyName: allowLambdaLogs
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Effect: Allow
+              Action:
+              - logs:*
+              Resource: arn:aws:logs:*:*:*
+        - PolicyName: allowSqs
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Effect: Allow
+              Action:
+              - sqs:ReceiveMessage
+              - sqs:DeleteMessage
+              - sqs:GetQueueAttributes
+              Resource: !GetAtt AssignFifoQueue.Arn
+        - PolicyName: allowDynamodb
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Effect: Allow
+              Action:
+              - dynamodb:*
+              Resource: !GetAtt AssignDBTable.Arn
+              
+  AssignLambdaFunction: 
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: AssignLambdaFunction
+      Code:
+        S3Bucket: mylambda-demo
+        S3Key: AssignLambdaFunction.zip 
+      Handler: com.test.LambdaFunction::handleRequest
+      Role: !GetAtt AssignLambdaRole.Arn
+      Runtime: java8
+      Timeout: 60
+      MemorySize: 512
+
+# Map the Amazon SQS source queue to the AWS Lambda function handler
+  LambdaFunctionEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      BatchSize: 10
+      Enabled: true
+      EventSourceArn: !GetAtt AssignFifoQueue.Arn
+      FunctionName: !GetAtt AssignLambdaFunction.Arn
+
+# Create an Amazon SQS Queue (source)
+  AssignFifoQueue: 
+    Type: AWS::SQS::Queue
+    Properties:
+      FifoQueue: true
+      QueueName: AssignFifoQueue.fifo
+      DelaySeconds: 0
+      VisibilityTimeout: 120
+      
+  AssignDBTable: 
+    Type: AWS::DynamoDB::Table
+    Properties: 
+     TableName: AssignDBTable
+     AttributeDefinitions: 
+      - 
+        AttributeName: "msgId"
+        AttributeType: "S"
+     KeySchema: 
+      - 
+        AttributeName: "msgId"
+        KeyType: "HASH"
+     ProvisionedThroughput: 
+      ReadCapacityUnits: 1
+      WriteCapacityUnits: 1 
+      
+  # OUTPUT values for the user
+Outputs: 
+  LambdaSQSHandlerFunctionARN: 
+    Description: "ARN of the AWS Lambda function"
+    Value: 
+      Fn::GetAtt: 
+        - "AssignLambdaFunction" 
+        - "Arn"

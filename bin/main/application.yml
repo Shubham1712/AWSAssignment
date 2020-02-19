@@ -1,0 +1,11 @@
+server:
+  port: 9002
+
+cloud:
+  aws:
+    region:
+      static: us-east-1
+      auto: false
+    credentials:
+      access-key: AKIA4EV66LUDT74PTQPO
+      secret-key: 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
